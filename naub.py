@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 import urllib.parse
 import urllib.request
 
@@ -17,13 +18,13 @@ END = '\033[0m'
 DEBUG = True
 
 # set basic globals
-base_url = ''
+cmd_base_url = ''
 cmd = ''
 robot_urls = []
 # maybe an ignore list for bad names
-# ignore_list = [
-#     b'User-agent: *'
-# ]
+ignore_list = [
+    '*'
+]
 
 print('\n------------------------------')
 print('            naub              ')
@@ -40,13 +41,14 @@ def get_robot_urls(url):
         response = urllib.request.urlopen(url + 'robots.txt')
         if response.code == 200:
             for line in response:
-                if line.startswith(b'User-agent: *'):
+                conv_line = line.split()[1].decode("utf-8")
+                if conv_line in ignore_list:
                     pass
                 else:
                     # remove the disallow or allow or possible other predicate
-                    robot_urls.append(line.split()[1].decode("utf-8"))
+                    robot_urls.append(conv_line)
             if DEBUG:
-                print(NOTICE + '[#]' + END + str(robot_urls))
+                print(NOTICE + '[#]' + END + 'URL List: ' + str(robot_urls))
             return robot_urls
 
     except urllib.error.HTTPError as e:
@@ -59,27 +61,44 @@ def get_robot_urls(url):
             print('{0}{1}'.format(ALERT + '[!]' + END, e.code))
         return robot_urls
 
+def test_urls(url_wordlist=None, base_url=None):
+    for url in robot_urls:
+        try:
+            response = urllib.request.urlopen(base_url + url)
+            if response.code == 200:
+                if DEBUG:
+                    print(SUCCESS + '[+]' + END + url)
+
+        except urllib.error.HTTPError as e:
+            if DEBUG:
+                print('{0}{1}'.format(ALERT + '[!]' + END, e.code))
+
+        except urllib.error.URLError as e:
+            if DEBUG:
+                print('{0}{1}'.format(ALERT + '[!]' + END, e.code))
 
 if __name__ == "__main__":
     while cmd != 'q'.lower():
         # display menu and get cmd
         print('\nenter a command:')
-        print('set | set url of site')
+        print('set | set url of site and bruteforce')
         print('q | kill session')
         cmd = input('==> ')
 
         if cmd == 'set'.lower():
+            robot_urls = []
             try:
                 if config.URL and config.URL.strip() != '':
-                    base_url = config.URL
+                    cmd_base_url = config.URL
                 else:
-                    base_url = input('URL==> ')
+                    cmd_base_url = input('URL==> ')
             except:
-                base_url = input('URL==> ')
+                cmd_base_url = input('URL==> ')
 
             print(SUCCESS + '[+]' + END + 'URL set')
             print(NOTICE + '[#]' + END + 'checking robots.txt')
-            get_robot_urls(base_url)
+            get_robot_urls(cmd_base_url)
+            test_urls(base_url=cmd_base_url)
 
         elif cmd == 'q'.lower():
             print(NOTICE + '[XXX]' + END + ',.-\'*^GAME_OVER^*\'-.,')
