@@ -16,8 +16,6 @@ SUCCESS = '\033[92m'
 WARN = '\033[93m'
 # you need the end encoding after the message
 END = '\033[0m'
-# DEBUG INFO
-DEBUG = True
 
 # set basic globals
 cmd_base_url = ''
@@ -49,50 +47,67 @@ def get_robot_urls(url):
                 else:
                     # remove the disallow or allow or possible other predicate
                     robot_urls.append(conv_line)
-            if DEBUG:
+            if config.DEBUG:
                 print(NOTICE + '[#]' + END + 'URL List: ' + str(robot_urls))
             return robot_urls
 
     except urllib.error.HTTPError as e:
-        if DEBUG:
+        if config.DEBUG:
             print('{0}{1}'.format(ALERT + '[!]' + END, e.code))
         return robot_urls
 
     except urllib.error.URLError as e:
-        if DEBUG:
+        if config.DEBUG:
             print('{0}{1}'.format(ALERT + '[!]' + END, e.code))
         return robot_urls
 
 def parse_url_list(path):
+    '''
+    takes path to txt file, parses url_wordlist txt file to make list of urls
+    :param path: string for path to txt file
+    :return: list of urls
+    '''
     global  url_list
     url_list = []
     with open(path) as url_txt:
         for line in url_txt:
             conv_line = line.strip()
-            if DEBUG:
+            if config.DEBUG:
                 print(SUCCESS + '[+]' + END + 'Added: ' + conv_line)
             url_list.append(conv_line)
 
     return url_list
 
 def test_urls(url_wordlist=None, base_url=None):
+    '''
+    takes list obj of urls and target url as string and does a test on each
+    returns list of active urls that may have content
+    :param url_wordlist: list of urls
+    :param base_url: string for target url
+    :return:
+    '''
     if url_wordlist:
-        results = open('results.txt', 'w')
+        existing_urls = []
+        if config.WRITE_TO_FILE:
+            results = open('results.txt', 'w')
         for url in url_wordlist:
             try:
                 response = urllib.request.urlopen(base_url + url)
                 if response.code == 200:
-                    if DEBUG:
+                    existing_urls.append(url)
+                    if config.DEBUG:
                         print(SUCCESS + '[+]' + END + url)
-                    results.write(
-                        '[{0}]: {1}'.format(
-                            response.code,
-                            url
+
+                    if config.WRITE_TO_FILE:
+                        results.write(
+                            '[{0}]: {1}\n'.format(
+                                response.code,
+                                url
+                            )
                         )
-                    )
 
             except urllib.error.HTTPError as e:
-                if DEBUG:
+                if config.DEBUG:
                     if e.code in accept_list:
                         print('{0}{1}'.format(WARN + '[^]' + END, e.code))
 
@@ -100,29 +115,35 @@ def test_urls(url_wordlist=None, base_url=None):
                         print('{0}{1}'.format(ALERT + '[!]' + END, e.code))
 
                 if e.code in accept_list:
-                    results.write(
-                        '[{0}]: {1}\n'.format(
-                            e.code,
-                            url
+                    existing_urls.append(url)
+                    if config.WRITE_TO_FILE:
+                        results.write(
+                            '[{0}]: {1}\n'.format(
+                                e.code,
+                                url
+                            )
                         )
-                    )
 
             except urllib.error.URLError as e:
-                if DEBUG:
+                if config.DEBUG:
                     if e.code in accept_list:
                         print('{0}{1}'.format(WARN + '[^]' + END, e.code))
                     else:
                         print('{0}{1}'.format(ALERT + '[!]' + END, e.code))
 
                 if e.code in accept_list:
-                    results.write(
-                        '[{0}]: {1}'.format(
-                            e.code,
-                            url
+                    existing_urls.append(url)
+                    if config.WRITE_TO_FILE:
+                        results.write(
+                            '[{0}]: {1}'.format(
+                                e.code,
+                                url
+                            )
                         )
-                    )
 
-        results.close()
+        if config.WRITE_TO_FILE:
+            results.close()
+        return existing_urls
 
 if __name__ == "__main__":
     print('\n------------------------------')
