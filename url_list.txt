@@ -1,0 +1,9 @@
+/wp-admin/
+/admin
+/images
+/media
+/static
+/videos
+/pictures
+/js
+/css
